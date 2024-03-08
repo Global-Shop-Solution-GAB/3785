@@ -1,0 +1,134 @@
+Program.Sub.ScreenSU.Start
+gui.F_InactivePart..create
+gui.F_InactivePart..caption("Inactive Parts")
+gui.F_InactivePart..size(2580,2355)
+gui.F_InactivePart..position(0,0)
+gui.F_InactivePart..event(unload,Unload)
+gui.F_InactivePart..alwaysontop(False)
+gui.F_InactivePart..fontname("Tahoma")
+gui.F_InactivePart..fontsize(8)
+gui.F_InactivePart..forecolor(0)
+gui.F_InactivePart..fontstyle(False,False,False,False,)
+gui.F_InactivePart..BackColor(-2147483633)
+gui.F_InactivePart..controlbox(True)
+gui.F_InactivePart..maxbutton(False)
+gui.F_InactivePart..minbutton(True)
+gui.F_InactivePart..mousepointer(0)
+gui.F_InactivePart..moveable(True)
+gui.F_InactivePart..sizeable(False)
+gui.F_InactivePart..ShowInTaskBar(True)
+gui.F_InactivePart..titlebar(True)
+gui.F_InactivePart.frmDate.create(frame)
+gui.F_InactivePart.frmDate.caption("Frame")
+gui.F_InactivePart.frmDate.size(1515,615)
+gui.F_InactivePart.frmDate.position(200,200)
+gui.F_InactivePart.frmDate.visible(True)
+gui.F_InactivePart.frmDate.borderstyle(0)
+gui.F_InactivePart.frmDate.fontname("Tahoma")
+gui.F_InactivePart.frmDate.fontsize(8)
+gui.F_InactivePart.lblDate.create(label,"Select Cutoff Date",True,1470,255,1,0,0,True,0,Tahoma,8,-2147483633,0)
+gui.F_InactivePart.lblDate.parent("frmdate")
+gui.F_InactivePart.dtpDate.create(datepicker)
+gui.F_InactivePart.dtpDate.visible(True)
+gui.F_InactivePart.dtpDate.size(1470,330)
+gui.F_InactivePart.dtpDate.zorder(0)
+gui.F_InactivePart.dtpDate.position(0,200)
+gui.F_InactivePart.dtpDate.enabled(True)
+gui.F_InactivePart.dtpDate.parent("frmdate")
+gui.F_InactivePart.dtpDate.checkbox(False)
+gui.F_InactivePart.cmdSubmit.create(button)
+gui.F_InactivePart.cmdSubmit.caption("Submit")
+gui.F_InactivePart.cmdSubmit.visible(True)
+gui.F_InactivePart.cmdSubmit.size(1000,375)
+gui.F_InactivePart.cmdSubmit.zorder(0)
+gui.F_InactivePart.cmdSubmit.position(200,1200)
+gui.F_InactivePart.cmdSubmit.enabled(True)
+gui.F_InactivePart.cmdSubmit.fontname("Tahoma")
+gui.F_InactivePart.cmdSubmit.fontsize(8)
+gui.F_InactivePart.cmdSubmit.event(click,cmdsubmit_click)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: CHANDANA
+'Project Start Date: 9/29/2011
+
+F.ODBC.Connection!Con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+Gui.F_InactivePart..Show
+
+Program.Sub.Main.End
+
+program.sub.cmdsubmit_click.start
+V.Local.sSql.Declare(String)
+V.Local.sDate1.Declare(String)
+V.Local.sDate2.Declare(String)
+V.Local.sMsg.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.iCt.Declare(Long)
+V.Local.iRet.Declare(Long)
+V.Local.sMonth.Declare(String)
+V.Local.sDay.Declare(String)
+V.Local.sYear.Declare(String)
+
+V.Local.sDate1.Set(V.Screen.F_InactivePart!dtpDate.Value)
+F.Intrinsic.String.Concat("Parts not used after ",V.Local.sDate1," will be marked as Inactive",V.Local.sMsg)
+F.Intrinsic.UI.Msgbox(V.Local.sMsg,"Inactive Unused Parts",4,V.local.sRet)
+
+F.Intrinsic.Control.If(V.Local.sRet,=,7)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+Gui.F_InactivePart..Visible(False)
+F.Intrinsic.UI.InvokeWaitDialog("Processing . . . ","Inactive Unused Parts")
+
+F.Intrinsic.Control.For(V.Local.iCt,0,10,1)
+	F.Intrinsic.UI.ChangeWaitStatus("Processing . . . ",V.Local.iCt)
+F.Intrinsic.Control.Next(V.Local.iCt)
+
+V.Local.sSql.Set("Select Part, DATE_LAST_USAGE, Flag_Inactive from Inventory_Mstr where DATE_LAST_USAGE <> '000000' and Date_Last_Usage<>''")
+F.ODBC.Connection!Con.OpenRecordsetRW("rst",V.Local.sSql)
+F.Intrinsic.Control.DoUntil(V.ODBC.Con!rst.EOF,=,True)
+	V.Local.sDate2.Set(V.ODBC.Con!rst.FieldVal!DATE_LAST_USAGE)
+
+	F.Intrinsic.Control.If(V.Local.sDate2.Trim,<>,"")
+		F.Intrinsic.String.Left(V.Local.sDate2,2,V.Local.sMonth)
+		F.Intrinsic.String.Mid(V.Local.sDate2,3,2,V.Local.sDay)
+		F.Intrinsic.String.Right(V.Local.sDate2,2,V.Local.sYear)
+		F.Intrinsic.String.Concat(V.Local.sMonth,"/",V.Local.sDay,"/",V.Local.sYear,V.Local.sDate2)
+		F.Intrinsic.Date.DateDiff("d",V.Local.sDate1,V.Local.sDate2,V.Local.iRet)
+
+		'Set the date in mm/dd/yy Format
+		F.Intrinsic.Control.If(V.Local.iRet,<,0)
+			F.ODBC.Con!rst.Set!Flag_Inactive("Y")
+			F.ODBC.Con!rst.Update
+		F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.EndIf
+
+	F.ODBC.Con!rst.MoveNext
+F.Intrinsic.Control.Loop
+F.ODBC.Con!rst.Close
+F.Intrinsic.Control.For(V.Local.iCt,10,100,1)
+	F.Intrinsic.UI.ChangeWaitStatus("Processing . . . ",V.Local.iCt)
+F.Intrinsic.Control.Next(V.Local.iCt)
+
+F.Intrinsic.UI.CloseWaitDialog
+Gui.F_InactivePart..Visible(True)
+
+program.sub.cmdsubmit_click.end
+
+program.sub.Unload.start
+
+F.ODBC.Connection!Con.Close
+
+F.Intrinsic.Control.End
+
+program.sub.Unload.end
+
+
